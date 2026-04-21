@@ -1,11 +1,43 @@
-export function demoHtml(ticker: string): string {
-  const T = ticker.toUpperCase();
+import type { MarketData } from "./marketData";
+
+function fmt(n: number, digits = 2) {
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function fmtCap(n: number | null) {
+  if (n == null) return "—";
+  if (n >= 1e12) return `$${fmt(n / 1e12, 2)}T`;
+  if (n >= 1e9) return `$${fmt(n / 1e9, 2)}B`;
+  if (n >= 1e6) return `$${fmt(n / 1e6, 2)}M`;
+  return `$${fmt(n, 0)}`;
+}
+
+export function demoHtml(md: MarketData): string {
   const date = new Date().toISOString().slice(0, 10);
+  const changeClass = md.changePercent >= 0 ? "up" : "down";
+  const changeSign = md.changePercent >= 0 ? "+" : "";
+  const rangePct = Math.max(
+    0,
+    Math.min(
+      100,
+      ((md.price - md.fiftyTwoWeekLow) /
+        Math.max(md.fiftyTwoWeekHigh - md.fiftyTwoWeekLow, 1e-9)) *
+        100,
+    ),
+  );
+
+  const first = md.history[0]?.close ?? md.price;
+  const sixMoPct = ((md.price - first) / first) * 100;
+  const sixMoClass = sixMoPct >= 0 ? "up" : "down";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>${T} Market Dashboard (Demo)</title>
+<title>${md.ticker} Market Dashboard (Demo)</title>
 <style>
   :root { color-scheme: dark; }
   body { margin:0; font-family: ui-sans-serif, system-ui, sans-serif; background:#0b0d10; color:#e6e8eb; }
@@ -30,80 +62,46 @@ export function demoHtml(ticker: string): string {
 </head>
 <body>
 <div class="wrap">
-  <div class="banner">Demo mode — this is sample output. Set <code>ANTHROPIC_API_KEY</code> in <code>web/.env.local</code> for a real report.</div>
+  <div class="banner">Demo mode — prices are live from Yahoo Finance, but the analysis below is a sample template. Set <code>ANTHROPIC_API_KEY</code> in <code>web/.env.local</code> for real AI analysis.</div>
   <header>
-    <h1>${T} Market Dashboard</h1>
-    <div class="sub">Report date ${date} · Currency USD · Data: mock</div>
+    <h1>${md.ticker} · ${md.name}</h1>
+    <div class="sub">Report date ${date} · ${md.currency} · Data: Yahoo Finance</div>
   </header>
 
   <div class="grid">
     <div class="card col-4">
       <h3>Last price</h3>
-      <div class="metric">$482.31</div>
-      <div class="up">+2.14% today</div>
+      <div class="metric">$${fmt(md.price)}</div>
+      <div class="${changeClass}">${changeSign}${fmt(md.changePercent)}% today</div>
     </div>
     <div class="card col-4">
-      <h3>vs S&amp;P 500 (30d)</h3>
-      <div class="metric up">+4.8%</div>
-      <div class="muted">Outperforming benchmark</div>
+      <h3>6-month return</h3>
+      <div class="metric ${sixMoClass}">${sixMoPct >= 0 ? "+" : ""}${fmt(sixMoPct)}%</div>
+      <div class="muted">From $${fmt(first)} → $${fmt(md.price)}</div>
     </div>
     <div class="card col-4">
       <h3>52W range</h3>
-      <div class="metric">$312 – $520</div>
-      <div class="bar"><span style="width:76%"></span></div>
-    </div>
-
-    <div class="card col-8">
-      <h3>Multi-horizon signals</h3>
-      <table>
-        <tr><th>Horizon</th><th>Direction</th><th>Confidence</th><th>Notes</th></tr>
-        <tr><td>1 week</td><td class="up">Bullish</td><td><span class="pill">Medium</span></td><td>Momentum breakout above 50-day</td></tr>
-        <tr><td>1 month</td><td class="up">Bullish</td><td><span class="pill">Medium</span></td><td>Sector rotation tailwind</td></tr>
-        <tr><td>3 months</td><td class="muted">Neutral</td><td><span class="pill">Low</span></td><td>Earnings catalyst uncertain</td></tr>
-        <tr><td>12 months</td><td class="up">Bullish</td><td><span class="pill">Medium</span></td><td>Structural demand trend intact</td></tr>
-      </table>
+      <div class="metric">$${fmt(md.fiftyTwoWeekLow)} – $${fmt(md.fiftyTwoWeekHigh)}</div>
+      <div class="bar"><span style="width:${rangePct.toFixed(0)}%"></span></div>
     </div>
 
     <div class="card col-4">
-      <h3>Confidence breakdown</h3>
-      <table>
-        <tr><td>Price / technical</td><td>High</td></tr>
-        <tr><td>Macro context</td><td>Medium</td></tr>
-        <tr><td>News flow</td><td>Medium</td></tr>
-        <tr><td>Sentiment</td><td>Low</td></tr>
-      </table>
+      <h3>Market cap</h3>
+      <div class="metric">${fmtCap(md.marketCap)}</div>
     </div>
-
-    <div class="card col-6">
-      <h3>Bull case</h3>
-      <ul>
-        <li>Revenue growth sustained above consensus for 3 quarters</li>
-        <li>Buyback authorization recently expanded</li>
-        <li>Technical structure: higher highs, higher lows on weekly</li>
-      </ul>
+    <div class="card col-4">
+      <h3>P/E (trailing)</h3>
+      <div class="metric">${md.peRatio != null ? fmt(md.peRatio) : "—"}</div>
     </div>
-    <div class="card col-6">
-      <h3>Bear case</h3>
-      <ul>
-        <li>Valuation at 92nd percentile of 5-year range</li>
-        <li>Rising short interest in past two weeks</li>
-        <li>Sector-wide margin pressure from input costs</li>
-      </ul>
+    <div class="card col-4">
+      <h3>Volume</h3>
+      <div class="metric">${md.volume != null ? md.volume.toLocaleString() : "—"}</div>
+      <div class="muted">Avg 3mo: ${md.avgVolume != null ? md.avgVolume.toLocaleString() : "—"}</div>
     </div>
 
     <div class="card col-12">
-      <h3>Scenario matrix (3-month)</h3>
-      <table>
-        <tr><th>Scenario</th><th>Probability</th><th>Implication</th></tr>
-        <tr><td>Upside breakout</td><td>35%</td><td>New 52-week high on earnings beat</td></tr>
-        <tr><td>Range-bound</td><td>45%</td><td>Consolidation near current levels</td></tr>
-        <tr><td>Downside</td><td>20%</td><td>Retest of 200-day moving average</td></tr>
-      </table>
-    </div>
-
-    <div class="card col-12">
-      <h3>Signal summary</h3>
-      <p>Price action and macro context lean constructive, but valuation and sentiment warrant caution. Confidence is <b>Medium</b>. Narrative change vs prior report: unavailable (no prior report on file).</p>
+      <h3>Signal summary (sample text)</h3>
+      <p>This is placeholder analysis. With an API key set, Claude will generate a full multi-horizon analysis, bull/bear debate, scenario matrix, and confidence breakdown based on the live data above.</p>
     </div>
   </div>
 

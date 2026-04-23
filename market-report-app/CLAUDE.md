@@ -10,7 +10,9 @@ The system is designed to help the user:
 - compare multiple time horizons
 - inspect bull vs bear cases
 - review confidence by agent
+- inspect supporting research links
 - track scenario analysis
+- understand what changed since the prior cycle without opening a previous report
 - present outputs in a professional, Bloomberg-inspired dashboard style
 
 This repository is for analytical reporting only.
@@ -70,7 +72,7 @@ Prioritize evidence in this order:
 6. technical-narrative commentary from trading portals or blogs
 7. sentiment and social narratives
 
-Lower-quality narrative sources must not override stronger evidence from price, benchmark, or macro data.
+Lower-quality narrative sources must not override stronger evidence from price, benchmark, macro, or official releases.
 
 ---
 
@@ -91,6 +93,71 @@ Use the following internal agents when enough information is available.
 - Adjudicator Agent
 
 Use these agents to improve reasoning, not to create fake precision.
+
+---
+
+## Source Collection Rules
+
+For each research agent, collect curated supporting sources when available.
+
+### Required source behavior
+- attach 2 to 4 curated sources per agent when available
+- prefer high-signal links over many links
+- include title, URL, source type, relevance, and short note
+- ensure the source note explains why the source matters
+- do not attach filler links
+- do not attach duplicate links unless there is a strong reason
+
+### Reliability rules
+Prefer:
+- official releases
+- market data sources
+- major financial news
+- primary company materials
+- institutional-quality summaries
+
+Use lower-confidence sources only as secondary context:
+- blogs
+- trading portals
+- social sentiment pages
+
+Never let weaker source tiers override stronger evidence.
+
+---
+
+## Inline Prior Context Rules
+
+If a note refers to prior state, the report must remain understandable without opening previous reports.
+
+### Required behavior
+When referencing prior state:
+- include explicit change labels such as:
+  - UNCHANGED
+  - IMPROVED
+  - WEAKENED
+  - NEW
+  - REMOVED
+- include a short prior context snapshot inside the current report
+- include enough prior context that the user does not need to look up older reports
+
+### Bad example
+- "No new catalyst"
+- "Risk still unresolved"
+
+### Good example
+- "No new catalyst (UNCHANGED since prior cycle)"
+- "Iran risk remains unresolved (UNCHANGED)"
+- "No new macro releases since the last update"
+
+### Prior context snapshot behavior
+For each agent, when prior context exists, include:
+- short prior summary
+- prior key points
+- prior reference date
+
+If no prior context exists:
+- state that prior context is unavailable
+- do not fabricate history
 
 ---
 
@@ -116,6 +183,7 @@ Every full report should aim to include:
 - market data snapshot or watchlist summary
 - benchmark context when useful
 - multi-horizon signals
+- research agents section
 - debate layer
 - confidence breakdown
 - narrative change
@@ -140,6 +208,8 @@ Before finalizing any report:
 - ensure the disclaimer is present
 - ensure weaker sources do not override stronger sources
 - ensure the structured report object aligns with the schema
+- ensure source links are attached where available
+- ensure prior-state references are self-contained and understandable
 
 If prior-report context does not exist, state that narrative change is unavailable instead of fabricating it.
 
@@ -193,6 +263,43 @@ Do not:
 
 ---
 
+## Research Agent UI Rules
+
+In HTML, the research agent section should support source inspection and self-contained context.
+
+### Required UI behavior
+For each agent panel, show:
+- agent name
+- stance badge
+- score
+- summary
+- notes
+- prior context snapshot when available
+- expandable sources section
+
+### Source expansion behavior
+Use collapsible sections for sources.
+Preferred implementation:
+- native HTML `<details>` and `<summary>`
+- no heavy JavaScript required
+
+### Example UI pattern
+Each agent should have an expandable area such as:
+- View sources
+- View prior context
+- View notes
+
+### Notes behavior
+Notes should be understandable standalone.
+Do not write vague updates that require reading older reports.
+
+### Preferred note style
+- bullet-based
+- compact
+- explicitly labeled with change markers when relevant
+
+---
+
 ## Rendering Rules
 
 When rendering HTML:
@@ -203,16 +310,18 @@ When rendering HTML:
 - prefer CSS grid and flexbox
 - make files easy to open locally in a browser
 - prefer compact tables and panels over long narrative cards
+- ensure links are clickable and open in a new tab where appropriate
 
 ### Single ticker page structure
 1. Header bar
 2. Key metrics row
 3. Multi-horizon signal strip
-4. Debate panel
-5. Confidence breakdown panel
-6. Scenario matrix
-7. Macro drivers and risk watchlist
-8. Disclaimer footer
+4. Research agents section with expandable sources
+5. Debate panel
+6. Confidence breakdown panel
+7. Scenario matrix
+8. Macro drivers and risk watchlist
+9. Disclaimer footer
 
 ### Watchlist page structure
 1. Header bar
@@ -221,7 +330,8 @@ When rendering HTML:
 4. Cross-ticker comparison panel
 5. Shared macro drivers
 6. Compact per-ticker breakdowns
-7. Disclaimer footer
+7. Research agent summaries where useful
+8. Disclaimer footer
 
 ---
 
@@ -232,7 +342,7 @@ When creating HTML reports:
 - NEVER overwrite existing HTML files
 - ALWAYS create a new versioned file
 - DO NOT create a base report file without a numeric suffix
-- If an existing file path is already present, create the next numbered version instead
+- if an existing file path is already present, create the next numbered version instead
 
 ### Single ticker naming convention
 
@@ -280,7 +390,6 @@ For reusable templates, default path is:
 `templates/report_template.html`
 
 If that file already exists and a new template is being created rather than updated explicitly, create:
-
 - `templates/report_template_v2.html`
 - `templates/report_template_v3.html`
 
@@ -426,6 +535,8 @@ You must:
    - ranked tables
    - labeled sections
    - room for multi-horizon signals
+   - room for research agents with expandable sources
+   - room for prior context snapshot
    - room for debate layer
    - room for confidence breakdown
    - room for scenario matrix
@@ -452,6 +563,7 @@ You must:
    - weak evidence areas
    - sections with lower confidence
    - unresolved debate points
+   - missing sources if expected
 5. Return the structured object in a readable JSON-style format
 
 ---
@@ -513,6 +625,9 @@ These should map to:
 
 For a single ticker report:
 - produce a full multi-horizon analysis
+- make the research agent layer visible
+- include source-backed agent summaries
+- include inline prior context where relevant
 - make the debate layer visible
 - include confidence by agent
 - include scenario matrix
@@ -541,6 +656,7 @@ If some data is unavailable:
 - reduce confidence appropriately
 - do not fabricate analyst, macro, or sentiment inputs
 - state when watchlist comparison is limited by uneven data quality
+- if sources are unavailable for a specific agent, state that clearly instead of fabricating citations
 
 ---
 

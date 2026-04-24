@@ -212,3 +212,167 @@ Example source object:
   "relevance": "high",
   "note": "Supports neutral-to-cautious macro stance for the current cycle."
 }
+```
+
+---
+
+## 5. debate_layer
+
+Required entries:
+- bull_agent
+- bear_agent
+- adjudicator_agent
+
+Each agent must include:
+- arguments (array of short bullet-style points)
+- weaknesses (short note on where the case breaks down)
+
+Adjudicator must also include:
+- verdict (which side is better supported)
+- unresolved_uncertainty (what remains unclear)
+- confidence_impact (how the debate affects the overall confidence score)
+
+---
+
+## 6. agent_confidence_breakdown
+
+Required entries (one per agent):
+- market_data_agent
+- news_macro_agent
+- institutional_agent
+- technical_narrative_agent
+- social_sentiment_agent
+- bull_agent
+- bear_agent
+- adjudicator_agent
+
+Each entry must include:
+- stance (bullish / bearish / neutral / mixed)
+- score (0–100)
+- rationale (one-line explanation)
+
+Rule:
+Confidence scores must be consistent with the evidence described in the research_agents section.
+Do not assign high scores when evidence is thin or missing.
+
+---
+
+## 7. narrative_change
+
+Required fields:
+- classification (strengthening / weakening / unchanged / rotating / diverging)
+- prior_direction
+- prior_confidence
+- prior_dominant_narrative
+- current_direction
+- current_confidence
+- current_dominant_narrative
+- key_changes (array — what specifically changed)
+- prior_report_date
+
+Rules:
+- If no prior report exists, set classification to "unavailable" and state this explicitly
+- Do not fabricate prior context
+- Key changes must use explicit labels: UNCHANGED / IMPROVED / WEAKENED / NEW / REMOVED
+
+---
+
+## 8. scenario_matrix
+
+Required scenarios:
+- bull
+- base
+- bear
+- tail_risk
+
+Each scenario must include:
+- label (bull / base / bear / tail_risk)
+- target_price_range (e.g. "$7,300 – $7,500")
+- probability (approximate percentage, e.g. "~25%")
+- time_horizon (REQUIRED — explicit window the scenario applies to, e.g. "1–3 months")
+- trigger (the condition that must materialize for this scenario to activate)
+- narrative (short explanation of the path)
+
+Rules:
+- All four scenario probabilities must sum to approximately 100%
+- time_horizon must be explicitly stated on every scenario — never implicit or buried in narrative prose
+- Prefer a consistent time_horizon across all scenarios where possible
+- Avoid false precision in price targets — use ranges, not single points
+- Base case is usually the highest-probability scenario unless evidence is strongly asymmetric
+- Tail risk should be low-probability (typically ≤10%) but high-impact
+
+Example scenario object:
+```json
+{
+  "label": "bull",
+  "target_price_range": "$7,300 – $7,500",
+  "probability": "~25%",
+  "time_horizon": "1–3 months",
+  "trigger": "ATH breakout + Fed pivot signal + strong earnings",
+  "narrative": "ES=F clears $7,161.50 decisively on volume. Fed hints at rate cut path. Bull case targets $7,300–$7,500 within 1–3 months."
+}
+```
+
+---
+
+## 9. macro_drivers
+
+Required fields:
+- drivers (array)
+
+Each driver must include:
+- name (short label)
+- detail (one to two sentence explanation)
+- direction_impact (bullish / bearish / neutral)
+
+Rules:
+- Include 3–6 drivers
+- Drivers should be macro, policy, or sector-level — not stock-specific technicals
+- Order by impact significance (most impactful first)
+
+---
+
+## 10. risk_watchlist
+
+Required fields:
+- risks (array)
+
+Each risk must include:
+- name (short label)
+- level (HIGH / MEDIUM / LOW)
+- note (optional short context)
+
+Rules:
+- Include 4–8 risks
+- Order by level (HIGH first)
+- Do not list risks unsupported by evidence in the report
+
+---
+
+## 11. signal_summary
+
+Required fields:
+- overall_direction
+- overall_confidence
+- best_supported_horizon
+- narrative_change_label
+- key_points (array of 4–7 summary bullets)
+
+Rules:
+- overall_direction and overall_confidence must match the adjudicator_agent verdict
+- key_points must be consistent with the detailed sections above
+- Do not introduce new claims in signal_summary that are not supported elsewhere in the report
+
+---
+
+## 12. disclaimer
+
+Required text (must appear verbatim or equivalent):
+"Educational only. Not financial advice."
+
+Full disclaimer must also include:
+- Statement that the report is for informational purposes only
+- Statement that it does not constitute investment advice or a recommendation to buy or sell
+- Acknowledgment that past performance does not guarantee future results
+- Note that data may be delayed
+- Note that confidence scores are analytical estimates, not mathematical certainties
